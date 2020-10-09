@@ -1,0 +1,43 @@
+name: 'Composite action build'
+description: 'Composite action to build process'
+author: 'raulanatol'
+inputs:
+  npm-scope:
+    description: 'Private npm scope: @scope format'
+    required: true
+  github-repository-token:
+    description: 'The token used to auth with github repository'
+    required: true
+  sonar-host:
+    description: 'The sonar host to upload the stats'
+    required: true
+  sonar-token:
+    description: 'Sonar auth token'
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Config node
+      uses: actions/setup-node@v1
+      with:
+        always-auth: true
+        registry-url: https://npm.pkg.github.com/
+        scope: ${{ inputs.who-to-greet }}
+    - name: Update NPMRC
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.github-repository-token }}
+      run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+    - name: Init project
+      run: make init
+    - name: Check code
+      run: make
+    - name: Build
+      run: make build
+    - name: SonarQube Scan
+      uses: kitabisa/sonarqube-action@master
+      with:
+        host: ${{ inputs.sonar-host }}
+        login: ${{ inputs.sonar-token }}
